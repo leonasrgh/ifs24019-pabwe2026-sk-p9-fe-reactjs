@@ -168,7 +168,7 @@ pipeline {
         }
 
         // ============================================================
-        // PACKAGE APPLICATION (PURE SOURCE CODE DARI GITHUB)
+        // PACKAGE APPLICATION (HASIL BUILD STATIS)
         // ============================================================
         stage('Package Application') {
             agent {
@@ -193,28 +193,9 @@ pipeline {
 
                     git config --global --add safe.directory '*' || true
 
-                    echo "=== Creating Source Code Package (Pure Code from GitHub) ==="
-                    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-                        git archive --format=zip HEAD -o latest-app.zip
-                    else
-                        zip -r latest-app.zip . \
-                            -x ".git/*" \
-                            -x ".env*" \
-                            -x "server" \
-                            -x "server.exe" \
-                            -x "main" \
-                            -x "app" \
-                            -x "*.out" \
-                            -x "*.test" \
-                            -x "*.prof" \
-                            -x "cov*" \
-                            -x "coverage*" \
-                            -x ".trivy-cache/*" \
-                            -x "trivy-results.sarif" \
-                            -x "latest-app.zip" \
-                            -x ".vscode/*" \
-                            -x ".idea/*"
-                    fi
+                    echo "=== Creating Static Package (hasil build Vite: isi dist/ di root zip) ==="
+                    test -f dist/index.html
+                    (cd dist && zip -r ../latest-app.zip .)
 
                     echo "=== Application Package Created ==="
                     ls -lh latest-app.zip
@@ -226,12 +207,12 @@ pipeline {
                     fi
                     echo "OK: file .env tidak ada di zip"
 
-                    echo "=== Verify build binary excluded ==="
-                    if unzip -Z1 latest-app.zip | grep -E '^server$' >/dev/null; then
-                        echo "ERROR: zip masih berisi biner hasil build"
+                    echo "=== Verify index.html ada di root zip ==="
+                    if ! unzip -Z1 latest-app.zip | grep -E '^index\\.html$' >/dev/null; then
+                        echo "ERROR: index.html tidak ada di root zip"
                         exit 1
                     fi
-                    echo "OK: biner hasil build tidak disertakan dalam zip"
+                    echo "OK: index.html ada di root zip"
 
                     echo "=== Package Content (sample) ==="
                     unzip -l latest-app.zip | head -n 60
